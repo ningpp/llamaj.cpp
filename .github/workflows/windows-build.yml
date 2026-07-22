@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 env:
-  LLAMA_CPP_VERSION: b9873
+  LLAMA_CPP_VERSION: b10087
   JEXTRACT_BUILD: openjdk-25-jextract+2-4
 
 jobs:
