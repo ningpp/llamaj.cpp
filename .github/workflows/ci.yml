@@ -1,0 +1,194 @@
+name: CI
+
+# Builds llamaj.cpp on Windows, Linux and macOS.
+# Triggered on every push to a non-main branch (e.g. feat-windows) so platform
+# support can be validated in CI, and on workflow_dispatch.
+#
+# Platform notes:
+#   - Windows (windows-x86_64 profile) requires the llama.cpp headers and the
+#     jextract + llama.cpp CPU DLLs to be downloaded manually and passed via
+#     -Dllama.cpp.dir / -Djextract.dir.
+#   - Linux (linux-x86_64) and macOS (macosx-aarch64) profiles automatically
+#     download jextract and the native libraries during the validate /
+#     generate-sources phases, so no manual asset download is needed.
+on:
+  push:
+    branches-ignore:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  LLAMA_CPP_VERSION: b10217
+  JEXTRACT_BUILD: openjdk-25-jextract+2-4
+  MAVEN_OPTS: "-Xmx4g"
+
+jobs:
+  windows-build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Install Maven
+        shell: pwsh
+        run: |
+          $mavenVersion = '3.9.11'
+          $url = "https://archive.apache.org/dist/maven/maven-3/$mavenVersion/binaries/apache-maven-$mavenVersion-bin.zip"
+          $out = "$env:RUNNER_TEMP\maven.zip"
+          Invoke-WebRequest -Uri $url -OutFile $out -UseBasicParsing
+          Expand-Archive -Path $out -DestinationPath "$env:RUNNER_TEMP\maven"
+          "$env:RUNNER_TEMP\maven\apache-maven-$mavenVersion\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
+
+      - name: Clone llama.cpp ${{ env.LLAMA_CPP_VERSION }} (headers)
+        shell: bash
+        run: |
+          git clone -b "$LLAMA_CPP_VERSION" --single-branch --depth 1 \
+            https://github.com/ggml-org/llama.cpp "$RUNNER_TEMP/llama.cpp"
+          echo "LLAMA_CPP_SRC=$RUNNER_TEMP/llama.cpp" >> "$GITHUB_ENV"
+
+      - name: Download jextract (${{ env.JEXTRACT_BUILD }}, Windows x64)
+        shell: pwsh
+        run: |
+          $url = "https://download.java.net/java/early_access/jextract/25/2/${{ env.JEXTRACT_BUILD }}_windows-x64_bin.tar.gz"
+          $out = "$env:RUNNER_TEMP\jextract.tar.gz"
+          Invoke-WebRequest -Uri $url -OutFile $out -UseBasicParsing
+          tar.exe -xzf $out -C "$env:RUNNER_TEMP"
+          # The archive extracts to a versioned top-level folder (e.g. jextract-25);
+          # locate it dynamically instead of hardcoding the name.
+          $jextractDir = Get-ChildItem "$env:RUNNER_TEMP" -Directory -Filter "jextract-*" | Select-Object -First 1
+          if (-not $jextractDir) { throw "jextract archive did not extract into $env:RUNNER_TEMP" }
+          echo "JEXTRACT_HOME=$($jextractDir.FullName)" >> "$env:GITHUB_ENV"
+
+      - name: Download llama.cpp CPU DLLs (${{ env.LLAMA_CPP_VERSION }})
+        shell: pwsh
+        run: |
+          $url = "https://github.com/ggml-org/llama.cpp/releases/download/${{ env.LLAMA_CPP_VERSION }}/llama-${{ env.LLAMA_CPP_VERSION }}-bin-win-cpu-x64.zip"
+          $out = "$env:RUNNER_TEMP\llama-dll.zip"
+          Invoke-WebRequest -Uri $url -OutFile $out -UseBasicParsing
+          Expand-Archive -Path $out -DestinationPath "$env:RUNNER_TEMP\llama-bin"
+          # Locate the folder that actually contains llama.dll (zip layout may vary).
+          $llamaDll = Get-ChildItem "$env:RUNNER_TEMP\llama-bin" -Recurse -Filter llama.dll | Select-Object -First 1
+          $dllDir = $llamaDll.DirectoryName
+          # Prepare a clean directory: core libs + all CPU backend variants.
+          # Tool-specific DLLs (llama-*-impl.dll, llama-common.dll) are excluded
+          # because they are not standalone libraries and would fail to load.
+          $clean = "$env:RUNNER_TEMP\llama-dll"
+          New-Item -ItemType Directory -Force -Path $clean | Out-Null
+          $keep = @('llama.dll', 'ggml.dll', 'ggml-base.dll', 'mtmd.dll', 'libomp140.x86_64.dll', 'ggml-rpc.dll')
+          Get-ChildItem $dllDir -Filter 'ggml-cpu-*.dll' | ForEach-Object { Copy-Item $_.FullName $clean }
+          foreach ($k in $keep) { Copy-Item "$dllDir\$k" $clean -ErrorAction SilentlyContinue }
+          echo "LLAMA_CPP_LIB_PATH=$clean" >> "$GITHUB_ENV"
+
+      - name: Build (generate sources + install)
+        shell: bash
+        run: |
+          mvn -B -Pwindows-x86_64 \
+            -Dllama.cpp.dir="$LLAMA_CPP_SRC" \
+            -Djextract.dir="$JEXTRACT_HOME" \
+            clean install -DskipTests
+
+      - name: Verify native library load
+        shell: bash
+        # Run only the compiled SmokeTest via the surefire goal: re-running the full
+        # lifecycle would re-generate sources and re-download the DLLs unnecessarily.
+        # LLAMA_CPP_LIB_PATH was exported to GITHUB_ENV above, so SmokeTest (which
+        # reads it via System.getenv) runs for real instead of being skipped.
+        run: |
+          mvn -B surefire:test -Dtest=SmokeTest
+
+  linux-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Clone llama.cpp ${{ env.LLAMA_CPP_VERSION }} (headers)
+        run: |
+          git clone -b "$LLAMA_CPP_VERSION" --single-branch --depth 1 \
+            https://github.com/ggml-org/llama.cpp "$RUNNER_TEMP/llama.cpp"
+          echo "LLAMA_CPP_SRC=$RUNNER_TEMP/llama.cpp" >> "$GITHUB_ENV"
+
+      - name: Build (generate sources + install)
+        run: |
+          mvn -B -Plinux-x86_64 -Dllama.cpp.dir="$LLAMA_CPP_SRC" \
+            clean install -DskipTests
+
+      - name: Verify native library load
+        # Run only the already-compiled SmokeTest via the surefire goal. This avoids
+        # re-running the lifecycle, which would re-download the native libs and then
+        # delete them from src/main/resources again in process-classes
+        # (remove-native-libs-from-resources). The copy in target/classes survives
+        # from the install step. LLAMA_CPP_LIB_PATH must be an *environment*
+        # variable: SmokeTest reads it via System.getenv(), a -D system property
+        # would silently skip the test instead of running it.
+        run: |
+          export LLAMA_CPP_LIB_PATH="$PWD/target/classes/linux/x86_64"
+          mvn -B surefire:test -Dtest=SmokeTest
+
+  macos-build:
+    # macos-14 is the first GitHub-hosted ARM64 (aarch64) runner, which matches
+    # the macosx-aarch64 Maven profile.
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Clone llama.cpp ${{ env.LLAMA_CPP_VERSION }} (headers)
+        run: |
+          git clone -b "$LLAMA_CPP_VERSION" --single-branch --depth 1 \
+            https://github.com/ggml-org/llama.cpp "$RUNNER_TEMP/llama.cpp"
+          echo "LLAMA_CPP_SRC=$RUNNER_TEMP/llama.cpp" >> "$GITHUB_ENV"
+
+      - name: Build (generate sources + install)
+        run: |
+          # macOS Gatekeeper quarantines downloaded executables, and download-jextract.sh
+          # only chmods. Assets are fetched in two Maven phases, so we download them
+          # first, strip the quarantine flag from each location, then build (which
+          # skips the already-present downloads).
+          # 1) validate phase -> downloads jextract into ./.jextract
+          mvn -B -Pmacosx-aarch64 -Dllama.cpp.dir="$LLAMA_CPP_SRC" validate
+          xattr -r -d com.apple.quarantine "$PWD/.jextract" 2>/dev/null || true
+          # 2) generate-sources phase -> downloads llama.cpp dylibs into ./src/main/resources/macosx/aarch64
+          mvn -B -Pmacosx-aarch64 -Dllama.cpp.dir="$LLAMA_CPP_SRC" generate-sources
+          xattr -r -d com.apple.quarantine "$PWD/src/main/resources" 2>/dev/null || true
+          # 3) Full build. `clean` does not touch .jextract / src/main/resources, and
+          #    re-running the phases skips downloads that already exist.
+          mvn -B -Pmacosx-aarch64 -Dllama.cpp.dir="$LLAMA_CPP_SRC" \
+            clean install -DskipTests
+
+      - name: Verify native library load
+        # Run only the already-compiled SmokeTest via the surefire goal. This avoids
+        # re-running the lifecycle, which would re-download the dylibs (and re-add
+        # the Gatekeeper quarantine flag) and then delete them from src/main/resources
+        # again in process-classes. The copy in target/classes was produced by the
+        # install step (Java copies do not carry the quarantine xattr), so loading
+        # from there is safe. LLAMA_CPP_LIB_PATH must be an *environment* variable:
+        # SmokeTest reads it via System.getenv(), a -D system property would
+        # silently skip the test instead of running it.
+        run: |
+          export LLAMA_CPP_LIB_PATH="$PWD/target/classes/macosx/aarch64"
+          mvn -B surefire:test -Dtest=SmokeTest

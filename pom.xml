@@ -315,8 +315,12 @@
             <properties>
                 <os>windows</os>
                 <arch>x86_64</arch>
-                <llama.cpp.dir>D:/llama.cpp-b10217/code</llama.cpp.dir>
-                <jextract.dir>D:/programs/jextract-25</jextract.dir>
+                <!-- Defaults mirror the top-level properties so the profile builds on any
+                     machine. Local dev can override them with -Dllama.cpp.dir and
+                     -Djextract.dir (pointing at the jextract root, which contains bin/jextract.bat),
+                     exactly as the CI workflow does. -->
+                <llama.cpp.dir>${project.basedir}/../llama.cpp</llama.cpp.dir>
+                <jextract.dir>${project.basedir}/.jextract</jextract.dir>
             </properties>
             <build>
                 <plugins>
@@ -505,7 +509,6 @@
                                 <exclude>licenses/LICENSE-llama-cpp</exclude>
                                 <exclude>CONTRIBUTING.adoc</exclude>
                                 <exclude>LICENSE.txt</exclude>
-                                <exclude>.circleci/config.yml</exclude>
                                 <exclude>README.md</exclude>
                                 <exclude>SECURITY.md</exclude>
                                 <exclude>.gravitee.settings.xml</exclude>

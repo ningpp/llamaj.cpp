@@ -2,7 +2,7 @@
 
 [![llamaj.cpp](https://img.shields.io/github/v/release/gravitee-io/llamaj.cpp?label=llamaj.cpp&color=orange&sort=semver)](https://github.com/gravitee-io/llamaj.cpp/releases)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](./LICENSE.txt)
-[![CircleCI](https://dl.circleci.com/status-badge/img/gh/gravitee-io/llamaj.cpp/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/gravitee-io/llamaj.cpp/tree/main)
+[![Build](https://github.com/gravitee-io/llamaj.cpp/actions/workflows/ci.yml/badge.svg)](https://github.com/gravitee-io/llamaj.cpp/actions/workflows/ci.yml)
 [![Community Forum](https://img.shields.io/badge/Gravitee-Community%20Forum-white?logo=githubdiscussion&logoColor=white)](https://community.gravitee.io?utm_source=readme)
 
 [![llama.cpp](https://img.shields.io/badge/llama.cpp-b10217-blue.svg)](https://github.com/ggml-org/llama.cpp/releases/tag/b10217)

@@ -18,7 +18,7 @@
 #
 # Download every model listed in scripts/ci-models.txt in parallel.
 #
-# Files that already exist (e.g. restored from the CircleCI cache) are skipped,
+# Files that already exist (e.g. restored from the CI cache) are skipped,
 # so this doubles as the cache-fill step: on a cold cache it fetches everything
 # concurrently; on a warm cache it only fills gaps and re-derives reasoning.gguf.
 #

@@ -22,7 +22,7 @@ REPO_URL="https://github.com/ggml-org/llama.cpp"
 CLONE_DIR="$HOME_DIR/llama.cpp"
 PROJECT_DIR="$HOME_DIR/llamaj.cpp"
 POM_FILE="$PROJECT_DIR/pom.xml"
-CIRCLECI_CONFIG="$PROJECT_DIR/.circleci/config.yml"
+GITHUB_ACTIONS_CI="$PROJECT_DIR/.github/workflows/ci.yml"
 README_FILE="$PROJECT_DIR/README.md"
 
 # --- Clone llama.cpp repo ---
@@ -47,7 +47,8 @@ git checkout -b "$branch_name"
 # --- Update version in files ---
 echo "Updating versions from $OLD_LLAMA_CPP_VERSION to $NEW_LLAMA_CPP_VERSION..."
 sed -i'' -E "s/$OLD_LLAMA_CPP_VERSION/$NEW_LLAMA_CPP_VERSION/g" "$POM_FILE"
-sed -i'' -E "s/$OLD_LLAMA_CPP_VERSION/$NEW_LLAMA_CPP_VERSION/g" "$CIRCLECI_CONFIG"
+# The GitHub Actions CI pins LLAMA_CPP_VERSION for the Windows job; keep it in sync.
+sed -i'' -E "s/$OLD_LLAMA_CPP_VERSION/$NEW_LLAMA_CPP_VERSION/g" "$GITHUB_ACTIONS_CI"
 # README badge + attribution reference the pinned llama.cpp tag (e.g. b9673).
 sed -i'' -E "s/$OLD_LLAMA_CPP_VERSION/$NEW_LLAMA_CPP_VERSION/g" "$README_FILE"
 
@@ -60,7 +61,7 @@ cp "$CLONE_DIR/LICENSE" "$LICENSE_DEST"
 
 # --- Commit and push changes ---
 echo "Committing and pushing changes..."
-git add "$POM_FILE" "$CIRCLECI_CONFIG" "$README_FILE" "$LICENSE_DEST"
+git add "$POM_FILE" "$GITHUB_ACTIONS_CI" "$README_FILE" "$LICENSE_DEST"
 
 TITLE="feat(deps): update llama.cpp from $OLD_LLAMA_CPP_VERSION to $NEW_LLAMA_CPP_VERSION"
 git commit -m "$TITLE"
