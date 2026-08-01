@@ -45,7 +45,7 @@
         <maven.compiler.release>25</maven.compiler.release>
         <junit-jupiter-api.version>6.0.3</junit-jupiter-api.version>
         <assertj-core.version>3.27.7</assertj-core.version>
-        <llama.cpp.version>b10087</llama.cpp.version>
+        <llama.cpp.version>b10217</llama.cpp.version>
         <llama.cpp.dir>${project.basedir}/../llama.cpp</llama.cpp.dir>
         <jextract.dir>${project.basedir}/.jextract/bin</jextract.dir>
     </properties>
@@ -315,7 +315,7 @@
             <properties>
                 <os>windows</os>
                 <arch>x86_64</arch>
-                <llama.cpp.dir>D:/llama.cpp-b10087/code</llama.cpp.dir>
+                <llama.cpp.dir>D:/llama.cpp-b10217/code</llama.cpp.dir>
                 <jextract.dir>D:/programs/jextract-25</jextract.dir>
             </properties>
             <build>
