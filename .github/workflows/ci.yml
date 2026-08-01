@@ -143,9 +143,12 @@ jobs:
           mvn -B surefire:test -Dtest=SmokeTest
 
   macos-build:
-    # macos-14 is the first GitHub-hosted ARM64 (aarch64) runner, which matches
-    # the macosx-aarch64 Maven profile.
-    runs-on: macos-14
+    # Use the macos-26 (Tahoe, arm64) runner. The prebuilt llama.cpp dylibs in
+    # release b10217 are compiled against the macOS 26 SDK and reference Metal
+    # symbols (e.g. _OBJC_CLASS_$_MTLResidencySetDescriptor) that only exist on
+    # macOS 26+. Loading them on older runners (macos-14) fails with
+    # UnsatisfiedLinkError, so the runner OS must match the libraries' min version.
+    runs-on: macos-26
     steps:
       - name: Checkout
         uses: actions/checkout@v4
