@@ -402,13 +402,6 @@
                         </executions>
                     </plugin>
                     <plugin>
-                        <groupId>com.mycila</groupId>
-                        <artifactId>license-maven-plugin</artifactId>
-                        <configuration>
-                            <skip>true</skip>
-                        </configuration>
-                    </plugin>
-                    <plugin>
                         <groupId>com.hubspot.maven.plugins</groupId>
                         <artifactId>prettier-maven-plugin</artifactId>
                         <configuration>
@@ -493,35 +486,6 @@
                         </configuration>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>com.mycila</groupId>
-                <artifactId>license-maven-plugin</artifactId>
-                <configuration>
-                    <properties>
-                        <owner>The Gravitee team</owner>
-                        <email>http://gravitee.io</email>
-                    </properties>
-                    <licenseSets>
-                        <licenseSet>
-                            <header>com/mycila/maven/plugin/license/templates/APACHE-2.txt</header>
-                            <excludes>
-                                <exclude>licenses/LICENSE-llama-cpp</exclude>
-                                <exclude>CONTRIBUTING.adoc</exclude>
-                                <exclude>LICENSE.txt</exclude>
-                                <exclude>README.md</exclude>
-                                <exclude>SECURITY.md</exclude>
-                                <exclude>.gravitee.settings.xml</exclude>
-                                <exclude>.jextract/**</exclude>
-                                <exclude>scripts/ci-models.txt</exclude>
-                            </excludes>
-                        </licenseSet>
-                    </licenseSets>
-                    <mapping>
-                        <ts>SLASHSTAR_STYLE</ts>
-                        <js>SLASHSTAR_STYLE</js>
-                    </mapping>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
