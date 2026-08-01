@@ -48,6 +48,8 @@
         <llama.cpp.version>b10217</llama.cpp.version>
         <llama.cpp.dir>${project.basedir}/../llama.cpp</llama.cpp.dir>
         <jextract.dir>${project.basedir}/.jextract/bin</jextract.dir>
+        <!-- Disable license/prettier validation inherited from gravitee-parent (skip.validation) -->
+        <skip.validation>true</skip.validation>
     </properties>
 
     <profiles>
@@ -464,13 +466,6 @@
             </resource>
         </resources>
         <plugins>
-            <plugin>
-                <groupId>com.mycila</groupId>
-                <artifactId>license-maven-plugin</artifactId>
-                <configuration>
-                    <skip>true</skip>
-                </configuration>
-            </plugin>
             <plugin>
                 <artifactId>maven-clean-plugin</artifactId>
                 <executions>
